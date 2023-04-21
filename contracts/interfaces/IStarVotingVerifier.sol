@@ -45,7 +45,7 @@ interface IStarVotingVerifier {
     function verifyProof(
         uint256 merkleTreeRoot,
         uint256 nullifierHash,
-        uint256[13] calldata signalArray,
+        string memory signalArray,
         uint256 externalNullifier,
         uint256[8] calldata proof,
         uint256 merkleTreeDepth

@@ -46,7 +46,8 @@ interface IStarVoting {
     /// @dev Emitted when a user votes on a poll.
     /// @param pollId: Id of the poll.
     /// @param vote: User encrypted vote.
-    event VoteAdded(uint256 indexed pollId, uint256[13] vote);
+    // event VoteAdded(uint256 indexed pollId, string vote);
+    event VoteAdded(uint256 indexed pollId, uint256 vote);
 
     /// @dev Emitted when a poll is ended.
     /// @param pollId: Id of the poll.
@@ -76,7 +77,14 @@ interface IStarVoting {
     /// @param nullifierHash: Nullifier hash.
     /// @param pollId: Id of the poll.
     /// @param proof: Private zk-proof parameters.
-    function castVote(uint256[13] calldata vote, uint256 nullifierHash, uint256 pollId, uint256[8] calldata proof) external;
+    // function castVote(string calldata vote, uint256 nullifierHash, uint256 pollId, uint256[8] calldata proof) external;
+
+    /// @dev Casts an anonymous vote in a poll.
+    /// @param vote: Encrypted vote.
+    /// @param nullifierHash: Nullifier hash.
+    /// @param pollId: Id of the poll.
+    /// @param proof: Private zk-proof parameters.
+    function castVote(uint256 vote, uint256 nullifierHash, uint256 pollId, uint256[8] calldata proof) external;
 
     /// @dev Ends a pull and publishes the key to decrypt the votes.
     /// @param pollId: Id of the poll.

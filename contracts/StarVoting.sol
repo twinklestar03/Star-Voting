@@ -67,7 +67,26 @@ contract StarVoting is IStarVoting, SemaphoreGroups {
     }
 
     /// @dev See {IStarVoting-castVote}.
-    function castVote(uint256[13] calldata vote, uint256 nullifierHash, uint256 pollId, uint256[8] calldata proof) public override {
+    // function castVote(string calldata vote, uint256 nullifierHash, uint256 pollId, uint256[8] calldata proof) public override {
+    //     if (polls[pollId].state != PollState.Ongoing) {
+    //         revert Semaphore__PollIsNotOngoing();
+    //     }
+
+    //     if (polls[pollId].nullifierHashes[nullifierHash]) {
+    //         revert Semaphore__YouAreUsingTheSameNillifierTwice();
+    //     }
+
+    //     uint256 merkleTreeDepth = getMerkleTreeDepth(pollId);
+    //     uint256 merkleTreeRoot = getMerkleTreeRoot(pollId);
+
+    //     verifier.verifyProof(merkleTreeRoot, nullifierHash, vote, pollId, proof, merkleTreeDepth);
+    //     // nullify the voter
+    //     polls[pollId].nullifierHashes[nullifierHash] = true;
+
+    //     emit VoteAdded(pollId, vote);
+    // }
+
+    function castVote(uint256 vote, uint256 nullifierHash, uint256 pollId, uint256[8] calldata proof) public override {
         if (polls[pollId].state != PollState.Ongoing) {
             revert Semaphore__PollIsNotOngoing();
         }

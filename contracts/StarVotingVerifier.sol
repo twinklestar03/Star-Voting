@@ -62,13 +62,13 @@ contract StarVotingVerifier is IStarVotingVerifier {
     function verifyProof(
         uint256 merkleTreeRoot,
         uint256 nullifierHash,
-        uint256[13] calldata signalArray,
+        string memory signalArray,
         uint256 externalNullifier,
         uint256[8] calldata proof,
         uint256 merkleTreeDepth
     ) external view override {
         uint256 signal;
-        signal = _hash_array(signalArray);
+        signal = _hash(signalArray);
         externalNullifier = _hash(externalNullifier);
 
         Proof memory p;
@@ -155,9 +155,16 @@ contract StarVotingVerifier is IStarVotingVerifier {
     }
 
     /// @dev Creates a keccak256 hash of a message compatible with the SNARK scalar modulus.
+    /// @param message: Message to be hashed.
+    /// @return Message digest.
+    function _hash(uint256[13] calldata message) private pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(message))) >> 8;
+    }
+
+    /// @dev Creates a keccak256 hash of a message compatible with the SNARK scalar modulus.
     /// @param message: Signal array to be hashed.
     /// @return Message digest.
-    function _hash_array(uint256[13] calldata message) private pure returns (uint256) {
+    function _hash(string memory message) private pure returns (uint256) {
         return uint256(keccak256(abi.encodePacked(message))) >> 8;
     }
 }

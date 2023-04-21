@@ -6,16 +6,23 @@
   "repository": "git@github.com:twinklestar03/Star-Voting.git",
   "author": "Team StarVoting",
   "license": "MIT",
+  "scripts": {
+    "download:snark-artifacts": "rimraf snark-artifacts && ts-node scripts/download-snark-artifacts.ts"
+  },
   "dependencies": {
     "@semaphore-protocol/contracts": "^3.7.0",
     "@semaphore-protocol/data": "^3.7.0",
     "@semaphore-protocol/group": "^3.7.0",
     "@semaphore-protocol/identity": "^3.7.0",
     "@semaphore-protocol/proof": "^3.7.0",
+    "@types/download": "^8.0.2",
+    "@types/rimraf": "^4.0.5",
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
     "dotenv": "^16.0.3",
-    "hardhat": "^2.14.0"
+    "download": "^8.0.0",
+    "hardhat": "^2.14.0",
+    "rimraf": "^5.0.0"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
