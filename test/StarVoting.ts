@@ -1,14 +1,93 @@
 /* eslint-disable jest/valid-expect */
+import { BigNumber } from "@ethersproject/bignumber"
+import { Hexable, zeroPad } from "@ethersproject/bytes"
 import { Group } from "@semaphore-protocol/group"
 import { Identity } from "@semaphore-protocol/identity"
-import { FullProof, generateProof } from "@semaphore-protocol/proof"
+import { FullProof, SnarkArtifacts, SnarkJSProof, Proof } from "@semaphore-protocol/proof"
 import { expect } from "chai"
 import { Signer } from "ethers"
 import { ethers, run } from "hardhat"
 import { Pairing, StarVoting } from "../build/typechain"
-import { Bytes, BytesLike, keccak256 } from "ethers/lib/utils"
+import { BytesLike, keccak256 } from "ethers/lib/utils"
+import { MerkleProof } from "@zk-kit/incremental-merkle-tree"
+const groth16 = require("snarkjs").groth16
 
-describe("SemaphoreVoting", () => {
+
+function packProof(originalProof: SnarkJSProof): Proof {
+    return [
+        originalProof.pi_a[0],
+        originalProof.pi_a[1],
+        originalProof.pi_b[0][1],
+        originalProof.pi_b[0][0],
+        originalProof.pi_b[1][1],
+        originalProof.pi_b[1][0],
+        originalProof.pi_c[0],
+        originalProof.pi_c[1]
+    ]
+}
+
+function hashBytes(message: BytesLike): bigint {
+    return BigInt(keccak256(message)) >> BigInt(8)
+}
+
+function hash(message: BytesLike | Hexable | number | bigint): bigint {
+    message = BigNumber.from(message).toTwos(256).toHexString()
+    message = zeroPad(message, 32)
+
+    return BigInt(keccak256(message)) >> BigInt(8)
+}
+
+async function generateProof(
+    { trapdoor, nullifier, commitment }: Identity,
+    groupOrMerkleProof: Group | MerkleProof,
+    externalNullifier: BytesLike | Hexable | number | bigint,
+    signal: BytesLike,
+    snarkArtifacts?: SnarkArtifacts
+): Promise<FullProof> {
+    let merkleProof: MerkleProof
+
+    if ("depth" in groupOrMerkleProof) {
+        const index = groupOrMerkleProof.indexOf(commitment)
+
+        if (index === -1) {
+            throw new Error("The identity is not part of the group")
+        }
+
+        merkleProof = groupOrMerkleProof.generateMerkleProof(index)
+    } else {
+        merkleProof = groupOrMerkleProof
+    }
+
+    if (!snarkArtifacts) {
+        snarkArtifacts = {
+            wasmFilePath: `https://www.trusted-setup-pse.org/semaphore/${merkleProof.siblings.length}/semaphore.wasm`,
+            zkeyFilePath: `https://www.trusted-setup-pse.org/semaphore/${merkleProof.siblings.length}/semaphore.zkey`
+        }
+    }
+
+    const { proof, publicSignals } = await groth16.fullProve(
+        {
+            identityTrapdoor: trapdoor,
+            identityNullifier: nullifier,
+            treePathIndices: merkleProof.pathIndices,
+            treeSiblings: merkleProof.siblings,
+            externalNullifier: hash(externalNullifier),
+            signalHash: hashBytes(signal)
+        },
+        snarkArtifacts.wasmFilePath,
+        snarkArtifacts.zkeyFilePath
+    )
+
+    return {
+        merkleTreeRoot: publicSignals[0],
+        nullifierHash: publicSignals[1],
+        signal: BigNumber.from(signal).toString(),
+        externalNullifier: BigNumber.from(externalNullifier).toString(),
+        proof: packProof(proof)
+    }
+}
+
+describe("StarVoting", () => {
     let starVotingContract: StarVoting
     let pairingContract: Pairing
     let accounts: Signer[]
@@ -146,15 +225,9 @@ describe("SemaphoreVoting", () => {
     describe("# castVote", () => {
         const identity = new Identity("test")
         
-        let vote: BigInt[] = [];
-        for(let i = 0; i < 13; i++) {
-            vote.push(BigInt(i+1));
-        }
+        // Serialize BigInt[13] to string
+        const voteData = "123123"
         
-        // BigInt[] to string
-        // const voteData = vote.map((v) => v.toString()).join("")
-        const voteData = 1
-
         const group = new Group(pollIds[2], treeDepth)
 
         group.addMembers([identity.commitment, BigInt(1)])
@@ -166,7 +239,7 @@ describe("SemaphoreVoting", () => {
             await starVotingContract.connect(accounts[1]).startPoll(pollIds[2], encryptionKey)
             await starVotingContract.createPoll(pollIds[3], coordinator, treeDepth, false, encryptedPollInfo)
 
-            fullProof = await generateProof(identity, group, pollIds[2], voteData, {
+            fullProof = await generateProof(identity, group, pollIds[2], Buffer.from(voteData), {
                 wasmFilePath,
                 zkeyFilePath
             })
@@ -199,43 +272,43 @@ describe("SemaphoreVoting", () => {
             await expect(transaction).to.emit(starVotingContract, "VoteAdded").withArgs(pollIds[2], voteData)
         })
 
-        // it("Should not cast a vote twice", async () => {
-        //     const transaction = starVotingContract
-        //         .connect(accounts[1])
-        //         .castVote(vote, fullProof.nullifierHash, pollIds[1], fullProof.proof)
+        it("Should not cast a vote twice", async () => {
+            const transaction = starVotingContract
+                .connect(accounts[2])
+                .castVote(voteData, fullProof.nullifierHash, pollIds[2], fullProof.proof)
 
-        //     await expect(transaction).to.be.revertedWithCustomError(
-        //         starVotingContract,
-        //         "Semaphore__YouAreUsingTheSameNillifierTwice"
-        //     )
-        // })
+            await expect(transaction).to.be.revertedWithCustomError(
+                starVotingContract,
+                "Semaphore__YouAreUsingTheSameNillifierTwice"
+            )
+        })
     })
 
-    // describe("# endPoll", () => {
-    //     it("Should not end the poll if the caller is not the coordinator", async () => {
-    //         const transaction = starVotingContract.endPoll(pollIds[1], decryptionKey)
+    describe("# endPoll", () => {
+        it("Should not end the poll if the caller is not the coordinator", async () => {
+            const transaction = starVotingContract.endPoll(pollIds[1], decryptionKey)
 
-    //         await expect(transaction).to.be.revertedWithCustomError(
-    //             starVotingContract,
-    //             "Semaphore__CallerIsNotThePollCoordinator"
-    //         )
-    //     })
+            await expect(transaction).to.be.revertedWithCustomError(
+                starVotingContract,
+                "Semaphore__CallerIsNotThePollCoordinator"
+            )
+        })
 
-    //     it("Should end the poll", async () => {
-    //         const transaction = starVotingContract.connect(accounts[1]).endPoll(pollIds[1], encryptionKey)
+        it("Should end the poll", async () => {
+            const transaction = starVotingContract.connect(accounts[1]).endPoll(pollIds[2], encryptionKey)
 
-    //         await expect(transaction)
-    //             .to.emit(starVotingContract, "PollEnded")
-    //             .withArgs(pollIds[1], coordinator, decryptionKey)
-    //     })
+            await expect(transaction)
+                .to.emit(starVotingContract, "PollEnded")
+                .withArgs(pollIds[2], coordinator, decryptionKey)
+        })
 
-    //     it("Should not end a poll if it has already been ended", async () => {
-    //         const transaction = starVotingContract.connect(accounts[1]).endPoll(pollIds[1], encryptionKey)
+        it("Should not end a poll if it has already been ended", async () => {
+            const transaction = starVotingContract.connect(accounts[1]).endPoll(pollIds[1], encryptionKey)
 
-    //         await expect(transaction).to.be.revertedWithCustomError(
-    //             starVotingContract,
-    //             "Semaphore__PollIsNotOngoing"
-    //         )
-    //     })
-    // })
+            await expect(transaction).to.be.revertedWithCustomError(
+                starVotingContract,
+                "Semaphore__PollIsNotOngoing"
+            )
+        })
+    })
 })
