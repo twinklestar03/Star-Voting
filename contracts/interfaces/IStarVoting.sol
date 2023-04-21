@@ -25,7 +25,8 @@ interface IStarVoting {
     struct Poll {
         address coordinator;
         PollState state;
-        bool livePoll;                              // Is the poll using asymmetric encryption
+        bool isLivePoll;                              // Is the poll using asymmetric encryption
+        bool isPrivate;                             // Is the poll private
         string encryptedPollInfo;                   // Encrypted Poll Details
         string encryptionKey;                       // Encryption Key
         string decryptionKey;                       // Decryption Key
@@ -59,7 +60,7 @@ interface IStarVoting {
     /// @param coordinator: Coordinator of the poll.
     /// @param merkleTreeDepth: Depth of the tree.
     /// @param livePoll: True if the poll is live.
-    function createPoll(uint256 pollId, address coordinator, uint256 merkleTreeDepth, bool livePoll, string calldata encryptedInfo) external;
+    function createPoll(uint256 pollId, address coordinator, uint256 merkleTreeDepth, bool livePoll, bool isPrivate, string calldata encryptedInfo) external;
 
     /// @dev Adds a voter to a poll.
     /// @param pollId: Id of the poll.
@@ -90,6 +91,10 @@ interface IStarVoting {
     /// @param decryptionKey: Key to decrypt poll votes.
     function endPoll(uint256 pollId, string calldata decryptionKey) external;
 
+    /// @dev Get Encrypted Poll Details
+    /// @param pollId: Id of the poll.
+    function getEncryptedPollInfo(uint256 pollId) external view returns (string memory);
+
     /// @dev Get Encryption Key of a poll.
     /// @param pollId: Id of the poll.
     function getEncryptionKey(uint256 pollId) external view returns (string memory);
@@ -97,4 +102,16 @@ interface IStarVoting {
     /// @dev Get Decryption Key of a poll.
     /// @param pollId: Id of the poll.
     function getDecryptionKey(uint256 pollId) external view returns (string memory);
+
+    /// @dev Get isPrivate of a poll.
+    /// @param pollId: Id of the poll.
+    function isPrivatePoll(uint256 pollId) external view returns (bool);
+
+    /// @dev Get isLive of a poll.
+    /// @param pollId: Id of the poll.
+    function isLivePoll(uint256 pollId) external view returns (bool);
+
+    /// @dev Get the state of a poll.
+    /// @param pollId: Id of the poll.
+    function getPollState(uint256 pollId) external view returns (PollState);
 }

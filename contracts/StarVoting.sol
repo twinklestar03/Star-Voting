@@ -23,6 +23,15 @@ contract StarVoting is IStarVoting, SemaphoreGroups {
         _;
     }
 
+    /// @dev Checks if the user has ability to add Voter.
+    /// @param pollId: Id of the poll.
+    modifier canAddVoter(uint256 pollId) {
+        if (polls[pollId].isPrivate && polls[pollId].coordinator != _msgSender()) {
+            revert Semaphore__CallerIsNotThePollCoordinator();
+        }
+        _;
+    }
+
     /// @dev Initializes the Semaphore verifier used to verify the user's ZK proofs.
     /// @param _verifier: Semaphore verifier address.
     constructor(IStarVotingVerifier _verifier) {
@@ -30,7 +39,7 @@ contract StarVoting is IStarVoting, SemaphoreGroups {
     }
 
     /// @dev See {IStarVoting-createPoll}.
-    function createPoll(uint256 pollId, address coordinator, uint256 merkleTreeDepth, bool livePoll, string calldata encryptedInfo) public override {
+    function createPoll(uint256 pollId, address coordinator, uint256 merkleTreeDepth, bool livePoll, bool isPrivate, string calldata encryptedInfo) public override {
         if (merkleTreeDepth < 16 || merkleTreeDepth > 32) {
             revert Semaphore__MerkleTreeDepthIsNotSupported();
         }
@@ -40,13 +49,14 @@ contract StarVoting is IStarVoting, SemaphoreGroups {
         // Setup poll data
         polls[pollId].coordinator = coordinator;
         polls[pollId].encryptedPollInfo = encryptedInfo;
-        polls[pollId].livePoll = livePoll;
+        polls[pollId].isLivePoll = livePoll;
+        polls[pollId].isPrivate = isPrivate;
 
         emit PollCreated(pollId, coordinator);
     }
 
     /// @dev See {IStarVoting-addVoter}.
-    function addVoter(uint256 pollId, uint256 identityCommitment) public override onlyCoordinator(pollId) {
+    function addVoter(uint256 pollId, uint256 identityCommitment) public override canAddVoter(pollId) {
         if (polls[pollId].state != PollState.Created) {
             revert Semaphore__PollHasAlreadyBeenStarted();
         }
@@ -86,25 +96,6 @@ contract StarVoting is IStarVoting, SemaphoreGroups {
         emit VoteAdded(pollId, vote);
     }
 
-    // function castVote(uint256 vote, uint256 nullifierHash, uint256 pollId, uint256[8] calldata proof) public override {
-    //     if (polls[pollId].state != PollState.Ongoing) {
-    //         revert Semaphore__PollIsNotOngoing();
-    //     }
-
-    //     if (polls[pollId].nullifierHashes[nullifierHash]) {
-    //         revert Semaphore__YouAreUsingTheSameNillifierTwice();
-    //     }
-
-    //     uint256 merkleTreeDepth = getMerkleTreeDepth(pollId);
-    //     uint256 merkleTreeRoot = getMerkleTreeRoot(pollId);
-
-    //     verifier.verifyProof(merkleTreeRoot, nullifierHash, vote, pollId, proof, merkleTreeDepth);
-    //     // nullify the voter
-    //     polls[pollId].nullifierHashes[nullifierHash] = true;
-
-    //     emit VoteAdded(pollId, vote);
-    // }
-
     /// @dev See {IStarVoting-publishDecryptionKey}.
     function endPoll(uint256 pollId, string calldata decryptionKey) public override onlyCoordinator(pollId) {
         if (polls[pollId].state != PollState.Ongoing) {
@@ -117,7 +108,12 @@ contract StarVoting is IStarVoting, SemaphoreGroups {
         emit PollEnded(pollId, _msgSender(), decryptionKey);
     }
 
-    // @dev See {IStarVoting-getEncryptionKey}.
+    /// @dev See {IStarVoting-getEncryptedPollInfo}.
+    function getEncryptedPollInfo(uint256 pollId) public override view returns (string memory) {
+        return polls[pollId].encryptedPollInfo;
+    }
+
+    /// @dev See {IStarVoting-getEncryptionKey}.
     function getEncryptionKey(uint256 pollId) public override view returns (string memory) {
         if (polls[pollId].state != PollState.Ongoing) {
             return "";
@@ -126,12 +122,27 @@ contract StarVoting is IStarVoting, SemaphoreGroups {
         return polls[pollId].encryptionKey;
     }
 
-    // @dev See {IStarVoting-getDecryptionKey}.
+    /// @dev See {IStarVoting-getDecryptionKey}.
     function getDecryptionKey(uint256 pollId) public override view returns (string memory) {
         if (polls[pollId].state != PollState.Ended) {
             return "";
         }
 
         return polls[pollId].decryptionKey;
+    }
+
+    /// @dev See {IStarVoting-getIsPrivate}.
+    function isPrivatePoll(uint256 pollId) public override view returns (bool) {
+        return polls[pollId].isPrivate;
+    }
+
+    /// @dev See {IStarVoting-getIsLive}.
+    function isLivePoll(uint256 pollId) public override view returns (bool) {
+        return polls[pollId].isLivePoll;
+    }
+
+    /// @dev See {IStarVoting-getPollState}.
+    function getPollState(uint256 pollId) public override view returns (PollState) {
+        return polls[pollId].state;
     }
 }

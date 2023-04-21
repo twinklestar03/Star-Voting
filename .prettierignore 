@@ -1,0 +1,9 @@
+# artifacts
+artifacts
+build
+cache
+contracts
+
+node_modules
+
+snark-artifacts

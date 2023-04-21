@@ -68,8 +68,22 @@ const hardhatConfig: HardhatUserConfig = {
   },
   networks: {
       hardhat: {
-          chainId: 1337,
-          allowUnlimitedContractSize: true
+        chainId: 1337,
+        allowUnlimitedContractSize: true
+      },
+      'thunder-testnet': {
+        url: 'https://testnet-rpc.thundercore.com',
+        chainId: 18,
+        gas: 90000000,
+        gasPrice: 1e9,
+        accounts: process.env.BACKEND_PRIVATE_KEY ? [process.env.BACKEND_PRIVATE_KEY] : [],
+      },
+      'thunder-mainnet': {
+        url: 'https://mainnet-rpc.thundercore.com',
+        chainId: 108,
+        gas: 90000000,
+        gasPrice: 1e9,
+        accounts: process.env.BACKEND_PRIVATE_KEY ? [process.env.BACKEND_PRIVATE_KEY] : [],
       },
       ...getNetworks()
   },

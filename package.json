@@ -7,7 +7,8 @@
   "author": "Team StarVoting",
   "license": "MIT",
   "scripts": {
-    "download:snark-artifacts": "rimraf snark-artifacts && ts-node scripts/download-snark-artifacts.ts"
+    "download:snark-artifacts": "rimraf snark-artifacts && ts-node scripts/download-snark-artifacts.ts",
+    "prettify": "yarn prettier -w tasks test scripts"
   },
   "dependencies": {
     "@semaphore-protocol/contracts": "^3.7.0",
@@ -40,6 +41,7 @@
     "chai": "^4.2.0",
     "ethers": "^5.4.7",
     "hardhat-gas-reporter": "^1.0.8",
+    "prettier": "2.8.7",
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
     "typechain": "^8.1.1",
