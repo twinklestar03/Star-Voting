@@ -97,7 +97,7 @@ describe("StarVoting", () => {
   let accounts: Signer[];
   let coordinator: string;
 
-  const treeDepth = Number(process.env.TREE_DEPTH) || 20;
+  const treeDepth = Number(process.env.TREE_DEPTH) || 16;
   const pollIds = [1, 2, 3, 4, 5];
   const encryptionKey = "I'm a encryption key";
   const decryptionKey = "I'm a decryption key";
@@ -108,9 +108,12 @@ describe("StarVoting", () => {
   const zkeyFilePath = `./snark-artifacts/${treeDepth}/semaphore.zkey`;
 
   before(async () => {
-    const { starVoting, pairingAddress } = await run("deploy:star-voting", {
-      logs: true,
-    });
+    const { starVoting, pairingAddress } = await run(
+      "deploy:star-voting-no-save",
+      {
+        logs: true,
+      }
+    );
 
     starVotingContract = starVoting;
     pairingContract = await ethers.getContractAt("Pairing", pairingAddress);

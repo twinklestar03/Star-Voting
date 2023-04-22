@@ -2,7 +2,10 @@ const poseidonContract = require("circomlibjs").poseidonContract;
 import { task, types } from "hardhat/config";
 import { saveDeployedContracts } from "../scripts/utils";
 
-task("deploy:star-voting", "Deploy a StarVoting Contract")
+task(
+  "deploy:star-voting-no-save",
+  "Deploy a StarVoting Contract Without Saving Deployed Addresses"
+)
   .addOptionalParam<boolean>("logs", "Print the logs", true, types.boolean)
   .setAction(async ({ logs }, { ethers, hardhatArguments }): Promise<any> => {
     const PairingFactory = await ethers.getContractFactory("Pairing");
@@ -88,14 +91,6 @@ task("deploy:star-voting", "Deploy a StarVoting Contract")
         `StarVoting contract has been deployed to: ${starVoting.address}`
       );
     }
-
-    saveDeployedContracts(hardhatArguments.network, {
-      Pairing: pairing.address,
-      StarVotingVerifier: starVotingVerifier.address,
-      Poseidon: poseidon.address,
-      IncrementalBinaryTree: incrementalBinaryTree.address,
-      StarVoting: starVoting.address,
-    });
 
     return {
       starVoting: starVoting,

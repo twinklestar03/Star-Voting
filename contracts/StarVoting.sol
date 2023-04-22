@@ -145,4 +145,9 @@ contract StarVoting is IStarVoting, SemaphoreGroups {
     function getPollState(uint256 pollId) public override view returns (PollState) {
         return polls[pollId].state;
     }
+
+    /// @dev See {IStarVoting-getPollCoordinator}.
+    function getPollCoordinator(uint256 pollId) public override view returns (address) {
+        return polls[pollId].coordinator;
+    }
 }

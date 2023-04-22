@@ -114,4 +114,8 @@ interface IStarVoting {
     /// @dev Get the state of a poll.
     /// @param pollId: Id of the poll.
     function getPollState(uint256 pollId) external view returns (PollState);
+
+    /// @dev Get the coordinator of a poll.
+    /// @param pollId: Id of the poll.
+    function getPollCoordinator(uint256 pollId) external view returns (address);
 }
