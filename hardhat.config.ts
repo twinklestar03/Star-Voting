@@ -39,10 +39,8 @@ const hardhatConfig: HardhatUserConfig = {
       accounts: process.env.BACKEND_PRIVATE_KEY ? [process.env.BACKEND_PRIVATE_KEY] : [],
     },
     'linea-testnet': {
-      url: 'https://rpc.goerli.linea.build',
+      url: 'https://rpc.goerli.linea.build/',
       chainId: 59140,
-      gas: 90000000,
-      gasPrice: 1e9,
       accounts: process.env.BACKEND_PRIVATE_KEY ? [process.env.BACKEND_PRIVATE_KEY] : [],
     },
     'chiado-testnet': {
@@ -66,6 +64,7 @@ const hardhatConfig: HardhatUserConfig = {
       apiKey: {
         // process.env.ETHERSCAN_API_KEY
         "thunder-testnet": "unused",
+        "linea-testnet": "unused",
         "chiado-testnet": "unused",
       },
       customChains: [
